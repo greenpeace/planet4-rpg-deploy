@@ -1,5 +1,7 @@
 RELEASE_NAME ?= p4-rpg
 
+CHART_NAME ?= p4/static
+
 SHELL := /bin/bash
 
 NAMESPACE ?= default
@@ -42,7 +44,7 @@ REVISION_TAG = $(shell git rev-parse --short HEAD)
 
 
 test:
-	yamllint .circleci/config.yml
+	# yamllint .circleci/config.yml
 	yamllint values.yaml
 	yamllint env/dev/values.yaml
 	yamllint env/prod/values.yaml
@@ -58,9 +60,18 @@ build: test pull docker/public
 		--tag=gcr.io/planet-4-151612/rpg:$(BUILD_TAG) \
 		--tag=gcr.io/planet-4-151612/rpg:$(BUILD_NUM) \
 		--tag=gcr.io/planet-4-151612/rpg:$(REVISION_TAG) \
-		.
+		docker
+
+dev-config:
+	gcloud config set project $(DEV_PROJECT)
+	gcloud container clusters get-credentials $(DEV_CLUSTER) --zone $(DEV_ZONE) --project $(DEV_PROJECT)
+
+dev-push: dev-config push
 
 push: push-tag push-latest
+
+dump:
+	$(info BUILD_TAG is [${BUILD_TAG}])
 
 push-tag:
 	docker push gcr.io/planet-4-151612/rpg:$(BUILD_TAG)
@@ -74,12 +85,10 @@ push-latest:
 		echo "Not tagged.. skipping latest"; \
 	} fi
 
-dev: test
-	gcloud config set project $(DEV_PROJECT)
-	gcloud container clusters get-credentials $(DEV_CLUSTER) --zone $(DEV_ZONE) --project $(DEV_PROJECT)
+dev: test dev-config
 	helm init --client-only
 	helm repo update
-	helm upgrade --install --force --wait $(RELEASE_NAME) p4/static \
+	helm upgrade --install --force --recreate-pods --wait $(RELEASE_NAME) $(CHART_NAME) \
 		--namespace=$(NAMESPACE) \
 		--values values.yaml \
 		--values env/dev/values.yaml

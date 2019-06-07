@@ -1,2 +1,3 @@
 ---
-hostname: k8s.p4.greenpeace.org
+hostname: develop.planet4.greenpeace.org
+hostpath: rpg
