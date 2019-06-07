@@ -1,0 +1,6 @@
+---
+hostname: planet.greenpeace.org
+hostpath: rpg
+ingress:
+  hosts:
+    - name: planet.greenpeace.org
